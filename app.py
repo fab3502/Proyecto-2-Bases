@@ -135,7 +135,7 @@ def add_concursante():
             })
         except Exception as e:
             print("Error al guardar la foto: ", e)
-    
+    flash('Concursante agregado exitosamente', 'success')
     return redirect(url_for('admin'))
 
 # Pagina de usuario normal

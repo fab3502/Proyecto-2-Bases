@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Iniciar sesión o crear cuenta</h1>
+
+  <form method="post" action="{{ url_for('login') }}">
+    <div class="mb-3">
+      <label for="username" class="form-label">Nombre de usuario</label>
+      <input id="username" type="text" name="username" required autocomplete="username" class="form-control">
+    </div>
+
+    <div class="mb-3">
+      <label for="password" class="form-label">Contraseña</label>
+      <input id="password" type="password" name="password" required autocomplete="current-password" class="form-control">
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" name="action" value="register" class="btn btn-outline-secondary">Crear cuenta</button>
+      <button type="submit" name="action" value="login" class="btn btn-primary">Iniciar sesión</button>
+      <button type="submit" name="action" value="reset" class="btn btn-outline-danger">Restablecer base de datos</button>
+    </div>
+  </form>
+{% endblock %}

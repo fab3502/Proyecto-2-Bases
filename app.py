@@ -91,7 +91,7 @@ def login():
 def admin():
     return render_template('admin.html')
 
-# Ruta de cargar json
+# Ruta de cargar json de concursantes
 @app.route('/load_json', methods=['POST'])
 def load_json():
     file = request.files.get('concursantes_json')
@@ -113,9 +113,30 @@ def load_json():
     return redirect(url_for('admin'))
 
 #Ruta de agregar concursante
-@app.route('/add_concursante')
+@app.route('/add_concursante', methods=['POST'])
 def add_concursante():
-    return render_template('add_concursante.html')
+    nombre = request.form.get('nombre')
+    categoria = request.form.get('categoria')
+    foto = request.files.get('foto')
+    
+    if foto:
+        filename = foto.filename
+        fotos_folder = os.path.join(os.path.dirname(__file__), 'static\\fotos')
+        try:            
+            save_path = os.path.join(fotos_folder, filename)
+            foto.save(save_path)
+            most_recent = list(db['concursantes'].find().sort('id', -1).limit(1))
+            db['concursantes'].insert_one({
+                'id': (most_recent[0]['id'] + 1) if len(most_recent) > 0 else 1,
+                'nombre': nombre,
+                'categoria': categoria,
+                'foto': filename,
+                'votos_acumulados': 0
+            })
+        except Exception as e:
+            print("Error al guardar la foto: ", e)
+    
+    return redirect(url_for('admin'))
 
 # Pagina de usuario normal
 @app.route('/user')

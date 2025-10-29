@@ -1,1 +1,123 @@
-admin
+{% extends "base.html" %}</div>
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+    <header class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 m-0">Panel de Administración</h1>
+
+        
+        <div class="d-flex gap-2">
+            
+            <form id="uploadJsonForm" class="d-flex align-items-center gap-2" method="post" action="{{ url_for('load_json') }}" enctype="multipart/form-data">
+                <input id="concursantesJsonInput" type="file" name="concursantes_json" accept="application/json,.json" style="display: none;" required>
+                <button id="uploadJsonBtn" class="btn btn-sm btn-outline-primary" type="button">Cargar concursantes</button>
+            </form>
+
+            
+            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addConcursanteModal">Agregar concursante</button>
+        
+            <form id="logoutForm" method="post" action="{{ url_for('logout') }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Cerrar sesión</button>
+            </form>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="addConcursanteModal" tabindex="-1" aria-labelledby="addConcursanteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addConcursanteModalLabel">Agregar Nuevo Concursante</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addConcursanteForm" method="post" action="{{ url_for('add_concursante') }}" enctype="multipart/form-data">
+                             
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label">Categoría</label>
+                                <input type="text" class="form-control" id="categoria" name="categoria" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="foto" class="form-label">Foto</label>
+                                <input type="file" class="form-control" id="foto" name="foto" accept="image/*" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" form="addConcursanteForm" class="btn btn-primary">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    
+    <section class="card shadow-sm mx-auto" style="max-width: 1100px; min-height: 520px;">
+        <div class="card-header p-0">
+            <!-- Tabs header (placeholder non functional for now) -->
+            <ul class="nav nav-tabs card-header-tabs" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-realtime" type="button" role="tab"
+                                    aria-controls="pane-realtime" aria-selected="true">Tiempo real</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-top3" type="button" role="tab"
+                                    aria-controls="pane-top3" aria-selected="false">Top 3</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-bycat" type="button" role="tab"
+                                    aria-controls="pane-bycat" aria-selected="false">Votos por categoría</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-novotes" type="button" role="tab"
+                                    aria-controls="pane-novotes" aria-selected="false">Sin votos</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <!-- Placeholders -->
+            <div id="pane-realtime" class="placeholder-panes">
+                <h2 class="h5 mb-3">Panel en tiempo real</h2>
+            </div>
+
+            <div id="pane-top3" class="placeholder-panes d-none">
+                <h2 class="h5 mb-3">Top 3</h2>
+            </div>
+
+            <div id="pane-bycat" class="placeholder-panes d-none">
+                <h2 class="h5 mb-3">Votos por categoría</h2>
+            </div>
+
+            <div id="pane-novotes" class="placeholder-panes d-none">
+                <h2 class="h5 mb-3">concursantees sin votos</h2>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        
+        (function() {
+            const btn = document.getElementById('uploadJsonBtn');
+            const input = document.getElementById('concursantesJsonInput');
+            const form = document.getElementById('uploadJsonForm');
+
+            if (btn && input && form) {
+                btn.addEventListener('click', function() {
+                    input.click();
+                });
+
+                input.addEventListener('change', function() {
+                    if (this.files && this.files.length) {
+                        form.submit();
+                    }
+                });
+            }
+        })();
+    </script>
+
+{% endblock %}

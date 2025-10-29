@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from db import reset_db
 import pymongo
-
+import json
+import os
 
 # Conexion a la base de datos mongo-------------------------------------------------------------
 MONGO_URL = "mongodb://localhost:27017/"
@@ -68,7 +68,19 @@ def login():
 
         return redirect(url_for('user'))
     elif action == 'reset':
-        reset_db(db)
+        db['usuarios'].delete_many({}) 
+        db['concursantes'].delete_many({})
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        usuarios_path = os.path.join(current_dir, 'usuarios.json')
+                
+        if not os.path.exists(usuarios_path):
+            usuarios_data = [{"username": "admin", "password": "password", "role": "admin"}]
+        else:
+            with open(usuarios_path, 'r') as f:
+                usuarios_data = json.load(f)
+            
+        db['usuarios'].insert_many(usuarios_data)
         flash('La base de datos ha sido restablecida', 'info')
         return redirect(url_for('index'))
 
@@ -79,13 +91,39 @@ def login():
 def admin():
     return render_template('admin.html')
 
+# Ruta de cargar json
+@app.route('/load_json', methods=['POST'])
+def load_json():
+    file = request.files.get('concursantes_json')
+    if not file:
+        flash('No se ha seleccionado ningún archivo', 'error')
+        return redirect(url_for('admin'))
+    
+    data = json.load(file)
+
+    if not data:
+        flash('El archivo JSON está vacío', 'error')
+        return redirect(url_for('admin'))
+
+    db['concursantes'].insert_many(data)
+    flash('Concursantes cargados exitosamente', 'success')
+
+    db['concursantes'].find({})
+
+    return redirect(url_for('admin'))
+
+#Ruta de agregar concursante
+@app.route('/add_concursante')
+def add_concursante():
+    return render_template('add_concursante.html')
+
 # Pagina de usuario normal
 @app.route('/user')
 def user():
     return render_template('user.html')
 
 # Maneja el logout
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     return redirect(url_for('index'))

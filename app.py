@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import pymongo
+import redis
 import json
 import os
 
@@ -9,6 +10,14 @@ MONGO_DB = "Proyecto2"
 mongo_client = pymongo.MongoClient(MONGO_URL)
 db = mongo_client[MONGO_DB]
 
+# Conexion a Redis-----------------------------------------------------------------------------
+redis_client = redis.Redis(host="127.0.0.1", port=6379, db=0, decode_responses=True)
+try:
+    redis_client.ping()
+    print("Redis OK")
+except redis.exceptions.ConnectionError as e:
+    print("Redis connection failed:", e)
+    
 # Configuracion de Flask------------------------------------------------------------------------
 app = Flask(__name__)
 app.secret_key = 'dev'
@@ -107,8 +116,6 @@ def load_json():
 
     db['concursantes'].insert_many(data)
     flash('Concursantes cargados exitosamente', 'success')
-
-    db['concursantes'].find({})
 
     return redirect(url_for('admin'))
 

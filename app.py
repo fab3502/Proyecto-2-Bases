@@ -18,31 +18,29 @@ app.secret_key = 'dev'
 # Pagina de inicio, renderiza el formulario de login/registro
 @app.route('/')
 def index():
-    session.clear()
     return render_template('login.html')
 
 # Maneja el login, registro y reseteo de la base de datos
 @app.route('/login', methods=['POST'])
 def login():
-    session.clear()
-
+    
     action = request.form.get('action', '')
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '')
 
     if action == 'login':
         if not username or not password:
-            flash('Username and password are required', 'warning')
+            flash('Username and password are required', 'error')
             return redirect(url_for('index'))
 
         user = db['usuarios'].find_one({'username': username})
         if not user:
-            flash('Invalid credentials', 'danger')
+            flash('Invalid credentials', 'error')
             return redirect(url_for('index'))
 
         
         if password != user.get('password', '') :
-            flash('Invalid credentials', 'danger')
+            flash('Invalid credentials', 'error')
             return redirect(url_for('index'))
 
         
@@ -57,10 +55,10 @@ def login():
 
     elif action == 'register':
         if not username or not password:
-            flash('Username and password are required', 'warning')
+            flash('Username and password are required', 'error')
             return redirect(url_for('index'))
         if db['usuarios'].find_one({'username': username}):
-            flash('Username already exists', 'danger')
+            flash('Username already exists', 'error')
             return redirect(url_for('index'))
         
         db['usuarios'].insert_one({'username': username, 'password': password, 'role': 'user'})

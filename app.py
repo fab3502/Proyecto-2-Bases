@@ -24,23 +24,22 @@ def index():
 @app.route('/login', methods=['POST'])
 def login():
     
-    action = request.form.get('action', '')
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '')
+    action = request.form.get('action')
+    username = request.form.get('username')
+    password = request.form.get('password')
 
     if action == 'login':
         if not username or not password:
-            flash('Username and password are required', 'error')
+            flash('Nombre de usuario y contraseña son requeridos', 'error')
             return redirect(url_for('index'))
 
         user = db['usuarios'].find_one({'username': username})
         if not user:
-            flash('Invalid credentials', 'error')
+            flash('Credenciales inválidas', 'error')
             return redirect(url_for('index'))
 
-        
-        if password != user.get('password', '') :
-            flash('Invalid credentials', 'error')
+        if password != user.get('password', ''):
+            flash('Credenciales inválidas', 'error')
             return redirect(url_for('index'))
 
         
@@ -55,10 +54,10 @@ def login():
 
     elif action == 'register':
         if not username or not password:
-            flash('Username and password are required', 'error')
+            flash('Nombre de usuario y contraseña son requeridos', 'error')
             return redirect(url_for('index'))
         if db['usuarios'].find_one({'username': username}):
-            flash('Username already exists', 'error')
+            flash('Nombre de usuario ya existe', 'error')
             return redirect(url_for('index'))
         
         db['usuarios'].insert_one({'username': username, 'password': password, 'role': 'user'})
@@ -70,7 +69,7 @@ def login():
         return redirect(url_for('user'))
     elif action == 'reset':
         reset_db(db)
-        flash('Database has been reset', 'info')
+        flash('La base de datos ha sido restablecida', 'info')
         return redirect(url_for('index'))
 
     return redirect(url_for('index'))
@@ -85,6 +84,7 @@ def admin():
 def user():
     return render_template('user.html')
 
+# Maneja el logout
 @app.route('/logout')
 def logout():
     session.clear()

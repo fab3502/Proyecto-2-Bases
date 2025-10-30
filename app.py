@@ -17,7 +17,7 @@ try:
     print("Redis OK")
 except redis.exceptions.ConnectionError as e:
     print("Redis connection failed:", e)
-    
+
 # Configuracion de Flask------------------------------------------------------------------------
 app = Flask(__name__)
 app.secret_key = 'dev'
@@ -79,6 +79,7 @@ def login():
     elif action == 'reset':
         db['usuarios'].delete_many({}) 
         db['concursantes'].delete_many({})
+        redis_client.flushdb()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         usuarios_path = os.path.join(current_dir, 'usuarios.json')

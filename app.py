@@ -3,7 +3,7 @@ import pymongo
 import redis
 import json
 import os
-from datetime import datetime
+from datetime import datetime,timezone
 
 # Conexion a la base de datos mongo-------------------------------------------------------------
 MONGO_URL = "mongodb://localhost:27017/"
@@ -93,6 +93,12 @@ def login():
                 usuarios_data = json.load(f)
 
         mongo_db['usuarios'].insert_many(usuarios_data)
+        mongo_db['votos_log'].create_index(
+            [("user_id", pymongo.ASCENDING), ("concursante_id", pymongo.ASCENDING)],
+            unique=True,
+            name="uniq_user_concursante"
+        )
+
         flash('La base de datos ha sido restablecida', 'info')
         return redirect(url_for('index'))
 
@@ -148,43 +154,123 @@ def add_concursante():
     flash('Concursante agregado exitosamente', 'success')
     return redirect(url_for('admin'))
 
+
+
 # Pagina de usuario normal
 @app.route('/user')
 def user():
     user_id = session.get('user_id')
-    concursantes = mongo_db['concursantes'].find({})
-    cache_votos_usuario = {int(x) for x in redis_db.smembers(f"voted:{user_id}")}
-    if cache_votos_usuario:
-        return render_template('user.html', concursantes=concursantes, votos_usuario=cache_votos_usuario)
-    else:
-        
-        historial_votos_usuario_cursor = mongo_db['votos_log'].find({'user_id':user_id},{'_id':0, 'concursante_id':1})
-        historial_votos_usuario = {int(doc['concursante_id']) for doc in historial_votos_usuario_cursor}
-        
-        return render_template('user.html', concursantes=concursantes, votos_usuario=historial_votos_usuario)
+    if not user_id:
+        flash('Debe iniciar sesión para acceder al panel de votación', 'error')
+        return redirect(url_for('index'))
 
+    concursantes = mongo_db['concursantes'].find({})
+
+    cursor = mongo_db['votos_log'].find(
+        {'user_id': user_id},
+        {'_id': 0, 'concursante_id': 1}
+    )
+    votos_usuario = {int(doc['concursante_id']) for doc in cursor}
+
+    try:
+        key = f"voted:{user_id}"
+        with redis_db.pipeline() as pipe:
+            pipe.delete(key)
+            if votos_usuario:
+                pipe.sadd(key, *[str(cid) for cid in votos_usuario]) 
+            pipe.execute()
+    except Exception:
+        print("Error al sincronizar votos del usuario en Redis")
+        pass
+
+    return render_template('user.html', concursantes=concursantes, votos_usuario=votos_usuario)
+
+
+# Ruta para agregar voto
 @app.route('/user/add_vote/<int:concursante_id>', methods=['POST'])
 def add_vote(concursante_id):
     user_id = session.get('user_id')
     if not user_id:
+        if is_hx():
+            return render_template('_vote_button.html', cid=concursante_id, has_voted=False), 401
         flash('Debe iniciar sesión para votar', 'error')
         return redirect(url_for('index'))
+    
+    try:
+        mongo_db['votos_log'].insert_one({
+            'user_id': user_id,
+            'concursante_id': int(concursante_id),
+            'timestamp': datetime.now(timezone.utc)  # UTC-aware
+        })
+        mongo_ok = True
+    except pymongo.errors.DuplicateKeyError:
+        mongo_ok = False
+    except Exception:
+        if is_hx():
+            current = has_user_voted(user_id, concursante_id)
+            return render_template('_vote_button.html', cid=concursante_id, has_voted=current), 500
+        flash('Error al registrar el voto', 'error')
+        return redirect(url_for('user'))
 
-    mongo_db['votos_log'].insert_one({'user_id':user_id,'concursante_id':concursante_id, 'timestamp': datetime.now()})
+    if mongo_ok:
+        try:
+            cid_str = str(concursante_id)
+            categoria = get_categoria_for_cid(concursante_id)
+            with redis_db.pipeline() as pipe:
+                pipe.incr(f"votes:{cid_str}")
+                pipe.incr("votes:total")
+                pipe.zincrby("votes:rank", 1, cid_str)
+                pipe.hincrby("votes:bycat", categoria, 1)
+                pipe.sadd(f"voted:{user_id}", cid_str)
+                pipe.execute()
+        except Exception:
+            pass
 
-    return redirect(url_for('user'))
+    if is_hx():
+        return render_template('_vote_button.html', cid=concursante_id, has_voted=True)
+    else:
+        if not mongo_ok:
+            flash('Ya ha votado por este concursante', 'error')
+        return redirect(url_for('user'))
 
 
 @app.route('/user/remove_vote/<int:concursante_id>', methods=['POST'])
 def remove_vote(concursante_id):
     user_id = session.get('user_id')
     if not user_id:
+        if is_hx():
+            return render_template('_vote_button.html', cid=concursante_id, has_voted=False), 401
         flash('Debe iniciar sesión para votar', 'error')
         return redirect(url_for('index'))
 
-    mongo_db['votos_log'].delete_one({'user_id':user_id,'concursante_id':concursante_id})
+    try:
+        mongo_db['votos_log'].delete_one({'user_id': user_id, 'concursante_id': int(concursante_id)})
+        mongo_ok = True
+    except Exception:
+        mongo_ok = False
 
-    return redirect(url_for('user'))
+    if mongo_ok:
+        try:
+            cid_str = str(concursante_id)
+            categoria = get_categoria_for_cid(concursante_id)
+            with redis_db.pipeline() as pipe:
+                pipe.decr(f"votes:{cid_str}")
+                pipe.decr("votes:total")
+                pipe.zincrby("votes:rank", -1, cid_str)
+                pipe.hincrby("votes:bycat", categoria, -1)
+                pipe.srem(f"voted:{user_id}", cid_str)
+                pipe.execute()
+        except Exception:
+            pass
+
+    if is_hx():
+        current = has_user_voted(user_id, concursante_id) if not mongo_ok else False
+        return render_template('_vote_button.html', cid=concursante_id, has_voted=current)
+    else:
+        if not mongo_ok:
+            flash('Error al eliminar el voto', 'error')
+        return redirect(url_for('user'))
+
     
 
 # Maneja el logout
@@ -192,6 +278,17 @@ def remove_vote(concursante_id):
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+# Funciones auxiliares-------------------------------------------------------------------------
+def is_hx() -> bool:
+    return request.headers.get('HX-Request') == 'true'
+
+def get_categoria_for_cid(cid: int) -> str:
+    doc = mongo_db['concursantes'].find_one({'id': int(cid)}, {'categoria': 1, '_id': 0})
+    return (doc or {}).get('categoria', 'Desconocida')
+
+def has_user_voted(user_id: str, cid: int) -> bool:
+    return mongo_db['votos_log'].count_documents({'user_id': user_id, 'concursante_id': int(cid)}, limit=1) == 1
 
 # Ejecuta la aplicacion-----------------------------------------------------------------------
 if __name__ == '__main__':

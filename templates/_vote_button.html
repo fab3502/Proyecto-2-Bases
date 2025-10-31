@@ -1,0 +1,19 @@
+<div id="btn-slot-{{ cid }}">
+  {% if has_voted %}
+    <form
+      hx-post="{{ url_for('remove_vote', concursante_id=cid) }}"
+      hx-target="#btn-slot-{{ cid }}"
+      hx-swap="outerHTML"
+      method="post">
+      <button type="submit" class="btn btn-sm btn-outline-danger">Quitar voto</button>
+    </form>
+  {% else %}
+    <form
+      hx-post="{{ url_for('add_vote', concursante_id=cid) }}"
+      hx-target="#btn-slot-{{ cid }}"
+      hx-swap="outerHTML"
+      method="post">
+      <button type="submit" class="btn btn-sm btn-primary">Votar</button>
+    </form>
+  {% endif %}
+</div>

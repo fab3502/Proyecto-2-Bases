@@ -24,15 +24,29 @@
           <h5 class="card-title mb-1">{{ c.nombre }}</h5>
           <p class="text-muted small">{{ c.categoria }}</p>
 
-          {% if c.id in votos_usuario %}
-            <form method="post" action="{{ url_for('remove_vote', concursante_id=c.id) }}">
-              <button type="submit" class="btn btn-sm btn-outline-danger">Quitar voto</button>
-            </form>
-          {% else %}
-            <form method="post" action="{{ url_for('add_vote', concursante_id=c.id) }}">
-              <button type="submit" class="btn btn-sm btn-primary">Votar</button>
-            </form>
-          {% endif %}
+          <!-- Zona que se reemplaza dinámicamente con HTMX -->
+          <div id="btn-slot-{{ c.id }}">
+            {% if c.id in votos_usuario %}
+              <!-- Quitar voto -->
+              <form
+                hx-post="{{ url_for('remove_vote', concursante_id=c.id) }}"
+                hx-target="#btn-slot-{{ c.id }}"
+                hx-swap="outerHTML"
+                method="post">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Quitar voto</button>
+              </form>
+            {% else %}
+              <!-- Votar -->
+              <form
+                hx-post="{{ url_for('add_vote', concursante_id=c.id) }}"
+                hx-target="#btn-slot-{{ c.id }}"
+                hx-swap="outerHTML"
+                method="post">
+                <button type="submit" class="btn btn-sm btn-primary">Votar</button>
+              </form>
+            {% endif %}
+          </div>
+          <!-- /btn-slot -->
         </div>
       </div>
     </div>

@@ -1,1 +1,42 @@
-user
+{% extends "base.html" %}
+{% block title %}Panel de Votación{% endblock %}
+
+{% block content %}
+<header class="d-flex align-items-center justify-content-between mb-4">
+  <h1 class="h3 m-0">Panel de Votación</h1>
+
+  <div class="d-flex gap-2">
+    <form id="logoutForm" method="post" action="{{ url_for('logout') }}">
+      <button type="submit" class="btn btn-sm btn-outline-danger">Cerrar sesión</button>
+    </form>
+  </div>
+</header>
+
+<!-- Contenedor de concursantes -->
+<section class="container">
+  <div class="row">
+    {% for c in concursantes %}
+    <div class="col-md-4 col-lg-3 mb-4">
+      <div class="card shadow-sm h-100">
+        <img src="{{ url_for('static', filename='fotos/' ~ c.foto) }}" 
+             class="card-img-top" alt="Foto de {{ c.nombre }}">
+        <div class="card-body text-center">
+          <h5 class="card-title mb-1">{{ c.nombre }}</h5>
+          <p class="text-muted small">{{ c.categoria }}</p>
+
+          {% if c.id in votos_usuario %}
+            <form method="post" action="{{ url_for('remove_vote', concursante_id=c.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger">Quitar voto</button>
+            </form>
+          {% else %}
+            <form method="post" action="{{ url_for('add_vote', concursante_id=c.id) }}">
+              <button type="submit" class="btn btn-sm btn-primary">Votar</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

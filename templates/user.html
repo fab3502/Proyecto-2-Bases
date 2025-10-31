@@ -29,7 +29,7 @@
             {% if c.id in votos_usuario %}
               <!-- Quitar voto -->
               <form
-                hx-post="{{ url_for('remove_vote', concursante_id=c.id) }}"
+                hx-post="{{ url_for('remove_vote_route', concursante_id=c.id) }}"
                 hx-target="#btn-slot-{{ c.id }}"
                 hx-swap="outerHTML"
                 method="post">
@@ -38,7 +38,7 @@
             {% else %}
               <!-- Votar -->
               <form
-                hx-post="{{ url_for('add_vote', concursante_id=c.id) }}"
+                hx-post="{{ url_for('add_vote_route', concursante_id=c.id) }}"
                 hx-target="#btn-slot-{{ c.id }}"
                 hx-swap="outerHTML"
                 method="post">

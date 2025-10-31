@@ -57,7 +57,7 @@ def login():
 
         user_insert(username, password, 'user')
         user = user_find_by_username(username)
-        session['user_id'] = str(user.get('_id'))
+        session['user_id'] = str(user.get('_id')) # type: ignore
         session['username'] = username
         session['role'] = 'user'
         return redirect(url_for('user'))
@@ -89,7 +89,7 @@ def load_json():
         return redirect(url_for('admin'))
 
     try:
-        data = json.load(file)
+        data = json.load(file) # type: ignore
         if not isinstance(data, list):
             data = data.get("concursantes", [])
     except Exception:
@@ -116,8 +116,8 @@ def add_concursante():
         flash('Datos incompletos', 'error')
         return redirect(url_for('admin'))
 
-    filename = secure_filename(foto.filename)
-    fotos_folder = os.path.join(app.static_folder, 'fotos')
+    filename = secure_filename(foto.filename) # type: ignore
+    fotos_folder = os.path.join(app.static_folder, 'fotos') # type: ignore
     os.makedirs(fotos_folder, exist_ok=True)
     foto.save(os.path.join(fotos_folder, filename))
 

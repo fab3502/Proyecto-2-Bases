@@ -2,122 +2,227 @@
 {% block title %}Admin{% endblock %}
 
 {% block content %}
-    <header class="d-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 m-0">Panel de Administración</h1>
+<!-- Single, persistent SSE connection (outside anything that swaps) -->
+<div id="sse" hx-ext="sse" sse-connect="{{ url_for('admin_events') }}"></div>
 
-        
-        <div class="d-flex gap-2">
-            
-            <form id="uploadJsonForm" class="d-flex align-items-center gap-2" method="post" action="{{ url_for('load_json') }}" enctype="multipart/form-data">
-                <input id="concursantesJsonInput" type="file" name="concursantes_json" accept="application/json,.json" style="display: none;" required>
-                <button id="uploadJsonBtn" class="btn btn-sm btn-outline-primary" type="button">Cargar concursantes</button>
-            </form>
+<header class="d-flex align-items-center justify-content-between mb-4">
+  <h1 class="h3 m-0">Panel de Administración</h1>
 
-            
-            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addConcursanteModal">Agregar concursante</button>
-        
-            <form id="logoutForm" method="post" action="{{ url_for('logout') }}">
-                <button type="submit" class="btn btn-sm btn-outline-danger">Cerrar sesión</button>
-            </form>
+  <div class="d-flex gap-2">
+    <!-- Cargar concursantes (JSON) -->
+    <form id="uploadJsonForm" class="d-flex align-items-center gap-2" method="post" action="{{ url_for('load_json') }}" enctype="multipart/form-data">
+      <input id="concursantesJsonInput" type="file" name="concursantes_json" accept="application/json,.json" style="display: none;" required>
+      <button id="uploadJsonBtn" class="btn btn-sm btn-outline-primary" type="button">Cargar concursantes</button>
+    </form>
+
+    <!-- Agregar concursante -->
+    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addConcursanteModal">Agregar concursante</button>
+
+    <!-- Logout -->
+    <form id="logoutForm" method="post" action="{{ url_for('logout') }}">
+      <button type="submit" class="btn btn-sm btn-outline-danger">Cerrar sesión</button>
+    </form>
+  </div>
+
+  <!-- Modal Agregar Concursante -->
+  <div class="modal fade" id="addConcursanteModal" tabindex="-1" aria-labelledby="addConcursanteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addConcursanteModalLabel">Agregar Nuevo Concursante</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-
-        <!-- Modal -->
-        <div class="modal fade" id="addConcursanteModal" tabindex="-1" aria-labelledby="addConcursanteModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addConcursanteModalLabel">Agregar Nuevo Concursante</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="addConcursanteForm" method="post" action="{{ url_for('add_concursante') }}" enctype="multipart/form-data">
-                             
-                            <div class="mb-3">
-                                <label for="nombre" class="form-label">Nombre</label>
-                                <input type="text" class="form-control" id="nombre" name="nombre" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="categoria" class="form-label">Categoría</label>
-                                <input type="text" class="form-control" id="categoria" name="categoria" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="foto" class="form-label">Foto</label>
-                                <input type="file" class="form-control" id="foto" name="foto" accept="image/png" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" form="addConcursanteForm" class="btn btn-primary">Guardar</button>
-                    </div>
-                </div>
+        <div class="modal-body">
+          <form id="addConcursanteForm" method="post" action="{{ url_for('add_concursante') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" name="nombre" required>
             </div>
+            <div class="mb-3">
+              <label for="categoria" class="form-label">Categoría</label>
+              <input type="text" class="form-control" id="categoria" name="categoria" required>
+            </div>
+            <div class="mb-3">
+              <label for="foto" class="form-label">Foto</label>
+              <input type="file" class="form-control" id="foto" name="foto" accept="image/png" required>
+            </div>
+          </form>
         </div>
-    </header>
-
-    
-    <section class="card shadow-sm mx-auto" style="max-width: 1100px; min-height: 520px;">
-        <div class="card-header p-0">
-            <!-- Tabs header (placeholder non functional for now) -->
-            <ul class="nav nav-tabs card-header-tabs" id="adminTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="tab-realtime" type="button" role="tab"
-                                    aria-controls="pane-realtime" aria-selected="true">Tiempo real</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-top3" type="button" role="tab"
-                                    aria-controls="pane-top3" aria-selected="false">Top 3</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-bycat" type="button" role="tab"
-                                    aria-controls="pane-bycat" aria-selected="false">Votos por categoría</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-novotes" type="button" role="tab"
-                                    aria-controls="pane-novotes" aria-selected="false">Sin votos</button>
-                </li>
-            </ul>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" form="addConcursanteForm" class="btn btn-primary">Guardar</button>
         </div>
+      </div>
+    </div>
+  </div>
+</header>
 
-        <div class="card-body">
-            <!-- Placeholders -->
-            <div id="pane-realtime" class="placeholder-panes">
-                <h2 class="h5 mb-3">Panel en tiempo real</h2>
-            </div>
+<section class="card shadow-sm mx-auto position-relative" style="max-width: 1100px; min-height: 520px;">
+  <!-- Global HTMX spinner  -->
+  <div id="htmxSpinner" class="position-absolute top-0 end-0 m-3 htmx-indicator">
+    <div class="spinner-border spinner-border-sm" role="status" aria-label="Cargando..."></div>
+  </div>
 
-            <div id="pane-top3" class="placeholder-panes d-none">
-                <h2 class="h5 mb-3">Top 3</h2>
-            </div>
+  <div class="card-header p-0">
+    <!-- Tabs header -->
+    <ul class="nav nav-tabs card-header-tabs" id="adminTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-realtime" type="button" role="tab"
+                aria-controls="pane-realtime" aria-selected="true">Tiempo real</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-top3" type="button" role="tab"
+                aria-controls="pane-top3" aria-selected="false">Top 3</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-bycat" type="button" role="tab"
+                aria-controls="pane-bycat" aria-selected="false">Votos por categoría</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-novotes" type="button" role="tab"
+                aria-controls="pane-novotes" aria-selected="false">Sin votos</button>
+      </li>
+    </ul>
+  </div>
 
-            <div id="pane-bycat" class="placeholder-panes d-none">
-                <h2 class="h5 mb-3">Votos por categoría</h2>
-            </div>
+  <div class="card-body">
+    <!-- PANE: Tiempo real-->
+    <div id="pane-realtime" class="placeholder-panes">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 m-0">Panel en tiempo real</h2>
+        <span class="text-muted small">Se actualiza cuando hay votos</span>
+      </div>
 
-            <div id="pane-novotes" class="placeholder-panes d-none">
-                <h2 class="h5 mb-3">Concursantes sin votos</h2>
-            </div>
-        </div>
-    </section>
+      <div
+        id="realtimeContent"
+        hx-get="{{ url_for('display_realtime') }}"
+        hx-trigger="load, sse:message from:#sse"
+        hx-swap="innerHTML"
+        hx-indicator="#htmxSpinner">
+        Cargando…
+      </div>
+    </div>
 
-    <script>
-        
-        (function() {
-            const btn = document.getElementById('uploadJsonBtn');
-            const input = document.getElementById('concursantesJsonInput');
-            const form = document.getElementById('uploadJsonForm');
+    <!-- PANE: Top 3 -->
+    <div id="pane-top3" class="placeholder-panes d-none">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 m-0">Top 3</h2>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          hx-get="{{ url_for('display_top3') }}"
+          hx-target="#top3Content"
+          hx-swap="innerHTML"
+          hx-indicator="#htmxSpinner">
+          Refrescar
+        </button>
+      </div>
 
-            if (btn && input && form) {
-                btn.addEventListener('click', function() {
-                    input.click();
-                });
+      <div
+        id="top3Content"
+        hx-get="{{ url_for('display_top3') }}"
+        hx-trigger="revealed, sse:message from:#sse"
+        hx-swap="innerHTML"
+        hx-indicator="#htmxSpinner">
+        (Haz clic en la pestaña para cargar)
+      </div>
+    </div>
 
-                input.addEventListener('change', function() {
-                    if (this.files && this.files.length) {
-                        form.submit();
-                    }
-                });
-            }
-        })();
-    </script>
+    <!-- PANE: Votos por categoría -->
+    <div id="pane-bycat" class="placeholder-panes d-none">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 m-0">Votos por categoría</h2>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          hx-get="{{ url_for('display_bycat') }}"
+          hx-target="#bycatContent"
+          hx-swap="innerHTML"
+          hx-indicator="#htmxSpinner">
+          Refrescar
+        </button>
+      </div>
 
+      <div
+        id="bycatContent"
+        hx-get="{{ url_for('display_bycat') }}"
+        hx-trigger="revealed, sse:message from:#sse"
+        hx-swap="innerHTML"
+        hx-indicator="#htmxSpinner">
+        (Haz clic en la pestaña para cargar)
+      </div>
+    </div>
+
+    <!-- PANE: Sin votos -->
+    <div id="pane-novotes" class="placeholder-panes d-none">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 m-0">Concursantes sin votos</h2>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          hx-get="{{ url_for('display_novotes') }}"
+          hx-target="#novotesContent"
+          hx-swap="innerHTML"
+          hx-indicator="#htmxSpinner">
+          Refrescar
+        </button>
+      </div>
+
+      <div
+        id="novotesContent"
+        hx-get="{{ url_for('display_novotes') }}"
+        hx-trigger="revealed, sse:message from:#sse"
+        hx-swap="innerHTML"
+        hx-indicator="#htmxSpinner">
+        (Haz clic en la pestaña para cargar)
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // JSON upload UX
+  (function () {
+    const btn = document.getElementById('uploadJsonBtn');
+    const input = document.getElementById('concursantesJsonInput');
+    const form = document.getElementById('uploadJsonForm');
+
+    if (btn && input && form) {
+      btn.addEventListener('click', function () { input.click(); });
+      input.addEventListener('change', function () {
+        if (this.files && this.files.length) { form.submit(); }
+      });
+    }
+  })();
+
+  // Simple tabs behavior
+  (function () {
+    const tabs = [
+      { btn: 'tab-realtime', pane: 'pane-realtime' },
+      { btn: 'tab-top3',     pane: 'pane-top3'     },
+      { btn: 'tab-bycat',    pane: 'pane-bycat'    },
+      { btn: 'tab-novotes',  pane: 'pane-novotes'  },
+    ];
+
+    function activate(idBtn) {
+      tabs.forEach(({ btn, pane }) => {
+        const b = document.getElementById(btn);
+        const p = document.getElementById(pane);
+        if (!b || !p) return;
+        const active = (btn === idBtn);
+        b.classList.toggle('active', active);
+        p.classList.toggle('d-none', !active);
+      });
+    }
+
+    tabs.forEach(({ btn }) => {
+      const b = document.getElementById(btn);
+      if (b) b.addEventListener('click', () => activate(btn));
+    });
+
+    activate('tab-realtime');
+  })();
+</script>
+{% endblock %}
+
+{% block scripts %}
+<!-- Load the SSE extension AFTER HTMX core (core is in base.html) -->
+<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/sse.js"></script>
 {% endblock %}

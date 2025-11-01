@@ -1,0 +1,36 @@
+<div class="table-responsive">
+  {% if rows and rows|length > 0 %}
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th style="width:72px;">Foto</th>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th class="text-end">Votos</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>
+          {% if r.foto %}
+            <img src="{{ url_for('static', filename='fotos/' ~ r.foto) }}"
+                 alt="Foto de {{ r.nombre }}"
+                 style="width:56px;height:56px;object-fit:cover;border-radius:8px;">
+          {% else %}
+            <div class="text-muted small">Sin foto</div>
+          {% endif %}
+        </td>
+        <td class="fw-medium">{{ r.nombre }}</td>
+        <td><span class="text-muted">{{ r.categoria }}</span></td>
+        <td class="text-end fw-semibold">{{ r.votos }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="alert alert-secondary mb-0">
+      No hay concursantes cargados todavía.
+    </div>
+  {% endif %}
+</div>

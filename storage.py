@@ -3,7 +3,14 @@ import pymongo, redis
 from datetime import datetime, timezone
 from typing import Iterable
 
-from config import MONGO_URI, MONGO_DB, REDIS_HOST, REDIS_PORT, REDIS_DB
+# --- Config -------------------------------------------------------------------
+MONGO_URI  = "mongodb://localhost:27017/"
+MONGO_DB   = "Proyecto2"
+
+REDIS_HOST = "127.0.0.1"
+REDIS_PORT = 6379
+REDIS_DB   = 0
+REDIS_CHANNEL_NAME = "votes_channel"
 
 # --- Clients ----------------------------------------------------------------
 mongo_client = pymongo.MongoClient(MONGO_URI)
@@ -45,7 +52,7 @@ def user_insert(username: str, password: str, role: str = "user") -> None:
 
 # --- Concursantes repo --------------------------------------------------------
 def concursantes_all():
-    return CONCURSANTES.find({})
+    return list(CONCURSANTES.find({}))
 
 def concursantes_next_id() -> int:
     last = list(CONCURSANTES.find().sort("id", -1).limit(1))
@@ -127,6 +134,23 @@ def votes_delete(user_id: str, cid: int) -> None:
 def votes_has(user_id: str, cid: int) -> bool:
     return VOTOS.count_documents({"user_id": user_id, "concursante_id": int(cid)}, limit=1) == 1
 
+def votes_count(concursantes):
+    concursantes_ids = [str(d['id']) for d in concursantes]
+    counts_by_id: dict[int, int] = {}
+    try:
+        with redis_db.pipeline() as pipe:
+            for cid in concursantes_ids:
+                pipe.get(f"votes:{cid}")
+            results = pipe.execute()
+            for cid, val in zip(concursantes_ids, results):
+                try:
+                    counts_by_id[int(cid)] = int(val) if val is not None else 0
+                except (TypeError, ValueError):
+                    counts_by_id[int(cid)] = 0
+    except Exception:
+        counts_by_id = {int(cid): 0 for cid in concursantes_ids}
+    return counts_by_id
+
 # --- Redis cache helpers --------------------------------
 def cache_warm_user_voted(user_id: str, cids: Iterable[int]) -> None:
     key = f"voted:{user_id}"
@@ -157,6 +181,17 @@ def cache_decr_vote_counters(cid: int, category: str, user_id: str) -> None:
         p.hincrby("votes:bycat", category or "Desconocida", -1)
         p.srem(f"voted:{user_id}", s)
         p.execute()
+
+"""def create_subscribe_pubsub():
+    pubsub = redis_db.pubsub()
+    return pubsub
+
+def subscribe_pubsub(pubsub):
+    pubsub.subscribe(REDIS_CHANNEL_NAME)
+    return pubsub"""
+
+def publish_vote_event():
+    redis_db.publish(REDIS_CHANNEL_NAME, "changed")
 
 # --- Reset helpers -----------------------------------------------
 def reset_all(seed_users: list[dict]) -> None:

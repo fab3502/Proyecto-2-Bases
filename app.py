@@ -1,18 +1,18 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, Response, stream_with_context
 from werkzeug.utils import secure_filename
-import os, json
+import os, json,time
 
-from config import SECRET_KEY
 from storage import (redis_db, ensure_indexes, reset_all,
     user_find_by_username, user_insert,
     concursantes_all, concursantes_insert,
-    concursantes_insert_many_sanitized)
-from services import warm_user_voted, add_vote, remove_vote
+    concursantes_insert_many_sanitized,
+    votes_count)
+from services import warm_user_voted, add_vote, remove_vote, make_vote_event_stream
 
 # --- Flask setup ----------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = SECRET_KEY
+app.secret_key = "dev"
 
 # --- Htmx util -----------------------------------------------------------------
 def is_hx() -> bool:
@@ -121,6 +121,66 @@ def add_concursante():
     concursantes_insert(nombre, categoria, filename)
     flash('Concursante agregado exitosamente', 'success')
     return redirect(url_for('admin'))
+"""
+@app.route('/admin/events')
+def admin_events():
+    event_stream = make_vote_event_stream()
+    return Response(
+        stream_with_context(event_stream),
+        mimetype="text/event-stream",
+        headers={
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+        },
+    )
+"""
+@app.route('/admin/events')
+def admin_events():
+    def make_vote_event_stream1():
+        while True:
+            yield 'event: message\ndata: {"ping": "ok"}\n\n'
+            time.sleep(3)
+
+    return Response(
+        stream_with_context(make_vote_event_stream1()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+@app.route('/admin/realtime')
+def display_realtime():
+    concursantes_docs = concursantes_all()
+    counts_by_id = votes_count(concursantes_docs)
+    rows = []
+    for d in concursantes_docs:
+        
+        cid = int(d['id'])
+        rows.append({
+            'id': cid,
+            'nombre': d.get('nombre', ''),
+            'categoria': d.get('categoria', ''),
+            'foto': d.get('foto', ''),
+            'votos': counts_by_id.get(cid, 0),
+        })
+    return render_template('_realtime_table.html', rows=rows)
+
+
+@app.route('/admin/top3')
+def display_top3():
+    return render_template('_vote_button.html', cid=1, has_voted=True)
+
+@app.route('/admin/bycat')
+def display_bycat():
+    return render_template('_vote_button.html', cid=1, has_voted=True)
+
+@app.route('/admin/novotes')
+def display_novotes():
+    return render_template('_vote_button.html', cid=1, has_voted=True)
 
 @app.route('/user')
 def user():
@@ -137,8 +197,8 @@ def user():
 def add_vote_route(concursante_id):
     user_id = session.get('user_id')
     if not user_id:
-        if is_hx():
-            return render_template('_vote_button.html', cid=concursante_id, has_voted=False), 401
+        #if is_hx():
+        #    return render_template('_vote_button.html', cid=concursante_id, has_voted=False), 401
         flash('Debe iniciar sesión para votar', 'error')
         return redirect(url_for('index'))
 
@@ -157,8 +217,8 @@ def add_vote_route(concursante_id):
 def remove_vote_route(concursante_id):
     user_id = session.get('user_id')
     if not user_id:
-        if is_hx():
-            return render_template('_vote_button.html', cid=concursante_id, has_voted=False), 401
+        #if is_hx():
+        #    return render_template('_vote_button.html', cid=concursante_id, has_voted=False), 401
         flash('Debe iniciar sesión para votar', 'error')
         return redirect(url_for('index'))
 
@@ -187,4 +247,4 @@ if __name__ == '__main__':
     except Exception as e:
         print("Redis connection failed:", e)
 
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False, threaded=True)

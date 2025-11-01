@@ -109,7 +109,6 @@ def concursantes_insert_many_sanitized(raw_list: list[dict]) -> dict:
 
     return {"inserted": inserted, "remapped": remapped, "errors": errors}
 
-
 # --- Votes repo --------------------------------------------------------------
 def votes_user_set(user_id: str) -> set[int]:
     cur = VOTOS.find({"user_id": user_id}, {"_id": 0, "concursante_id": 1})
@@ -121,7 +120,7 @@ def votes_insert(user_id: str, cid: int) -> None:
         "concursante_id": int(cid),
         "timestamp": datetime.now(timezone.utc), 
     })
-
+    
 def votes_delete(user_id: str, cid: int) -> None:
     VOTOS.delete_one({"user_id": user_id, "concursante_id": int(cid)})
 
@@ -147,6 +146,7 @@ def cache_incr_vote_counters(cid: int, category: str, user_id: str) -> None:
         p.hincrby("votes:bycat", category or "Desconocida", 1)
         p.sadd(f"voted:{user_id}", s)
         p.execute()
+    print("DEBUG votes:total =", redis_db.get("votes:total"))
 
 def cache_decr_vote_counters(cid: int, category: str, user_id: str) -> None:
     s = str(cid)

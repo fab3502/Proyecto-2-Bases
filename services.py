@@ -24,7 +24,7 @@ def add_vote(user_id: str, cid: int) -> Tuple[bool, bool]:
         except Exception:
             pass
         return True, False
-    except pymongo.errors.DuplicateKeyError:
+    except pymongo.errors.DuplicateKeyError:  # type: ignore
         return True, True
     except Exception:
         return False, False

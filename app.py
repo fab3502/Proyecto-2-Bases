@@ -4,12 +4,10 @@ from werkzeug.utils import secure_filename
 import os, json
 
 from config import SECRET_KEY
-from storage import (
-    redis_db, ensure_indexes, reset_all,
+from storage import (redis_db, ensure_indexes, reset_all,
     user_find_by_username, user_insert,
     concursantes_all, concursantes_insert,
-    concursantes_insert_many_sanitized
-)
+    concursantes_insert_many_sanitized)
 from services import warm_user_voted, add_vote, remove_vote
 
 # --- Flask setup ----------------------------------------------------------------
@@ -81,7 +79,7 @@ def login():
 def admin():
     return render_template('admin.html')
 
-@app.route('/load_json', methods=['POST'])
+@app.route('/admin/load_json', methods=['POST'])
 def load_json():
     file = request.files.get('concursantes_json')
     if not file:
@@ -105,8 +103,7 @@ def load_json():
     flash(msg, 'success' if result['inserted'] else 'error')
     return redirect(url_for('admin'))
 
-
-@app.route('/add_concursante', methods=['POST'])
+@app.route('/admin/add_concursante', methods=['POST'])
 def add_concursante():
     nombre = request.form.get('nombre')
     categoria = request.form.get('categoria')

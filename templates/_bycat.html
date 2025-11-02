@@ -1,0 +1,24 @@
+{% if categorias and categorias|length %}
+<table class="table table-dark table-hover align-middle mb-0">
+  <thead>
+    <tr>
+      <th style="width:70%">Categoría</th>
+      <th class="text-end" style="width:30%">Votos</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for categoria, votos in categorias.items() %}
+    <tr>
+      <td>{{ categoria }}</td>
+      <td class="text-end">
+        <span class="badge bg-primary">{{ votos }}</span>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="text-center text-muted py-4">
+  No hay votos registrados por categoría aún.
+</div>
+{% endif %}

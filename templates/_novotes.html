@@ -1,0 +1,23 @@
+{% if sin_votos and sin_votos|length %}
+<div class="row">
+  {% for c in sin_votos %}
+  <div class="col-md-4 col-lg-3 mb-3">
+    <div class="card text-center h-100 shadow-sm">
+      <img src="{{ url_for('static', filename='fotos/' ~ c.foto) }}"
+           class="card-img-top"
+           style="height:150px; object-fit:cover;"
+           alt="{{ c.nombre }}">
+      <div class="card-body">
+        <h6 class="card-title mb-1">{{ c.nombre }}</h6>
+        <p class="text-muted small mb-2">{{ c.categoria }}</p>
+        <span class="badge bg-secondary">0 votos</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-4">
+  Todos los concursantes tienen al menos un voto.
+</div>
+{% endif %}

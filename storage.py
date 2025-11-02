@@ -116,6 +116,39 @@ def concursantes_insert_many_sanitized(raw_list: list[dict]) -> dict:
 
     return {"inserted": inserted, "remapped": remapped, "errors": errors}
 
+def concursantes_get_top_3() -> list[dict]:
+    try:
+        top3_redis = redis_db.zrange("votes:rank", 0, 2, withscores=True, desc=True)
+        top3= []
+        for concursante_id, votos in top3_redis: # type: ignore
+            concursante = CONCURSANTES.find_one({"id":int(concursante_id)})
+            if concursante:
+                top3.append({
+                    "nombre": concursante["nombre"],
+                    "categoria": concursante["categoria"],
+                    "foto": concursante["foto"],
+                    "votos": int(votos)
+                })
+        return top3
+    except Exception:
+        return []
+
+def concursantes_no_votes() -> list[dict]:
+    try:
+        todos = list(concursantes_all())
+        con_votos = {
+            int(key.split(":")[1])
+            for key in redis_db.keys("votes:[0-9]*") # type: ignore
+            if key != "votes:total"
+        }
+        return [
+            concursante for concursante in todos
+            if concursante["id"] not in con_votos
+        ]
+    except Exception:
+        return []
+
+
 # --- Votes repo --------------------------------------------------------------
 def votes_user_set(user_id: str) -> set[int]:
     cur = VOTOS.find({"user_id": user_id}, {"_id": 0, "concursante_id": 1})
@@ -151,14 +184,12 @@ def votes_count(concursantes):
         counts_by_id = {int(cid): 0 for cid in concursantes_ids}
     return counts_by_id
 
-def create_pubsub():
-    return redis_db.pubsub()
-
-def subscribe_pubsub(pubsub):
-    pubsub.subscribe(REDIS_CHANNEL_NAME)
-
-def publish_vote_event():
-    redis_db.publish(REDIS_CHANNEL_NAME, "changed")
+def votes_by_categoria() -> dict[str, int]:
+    try:
+        return redis_db.hgetall("votes:bycat") or {} # type: ignore
+    except Exception:
+        return {}
+    
 
 # --- Redis cache helpers --------------------------------
 def cache_warm_user_voted(user_id: str, cids: Iterable[int]) -> None:
@@ -191,7 +222,7 @@ def cache_decr_vote_counters(cid: int, category: str, user_id: str) -> None:
         p.srem(f"voted:{user_id}", s)
         p.execute()
 
-# --- Reset helpers -----------------------------------------------
+# --- Helpers -----------------------------------------------
 def reset_all(seed_users: list[dict]) -> None:
     USUARIOS.delete_many({})
     CONCURSANTES.delete_many({})
@@ -200,3 +231,12 @@ def reset_all(seed_users: list[dict]) -> None:
     if seed_users:
         USUARIOS.insert_many(seed_users)
     ensure_indexes()
+
+def create_pubsub():
+    return redis_db.pubsub()
+
+def subscribe_pubsub(pubsub):
+    pubsub.subscribe(REDIS_CHANNEL_NAME)
+
+def publish_vote_event():
+    redis_db.publish(REDIS_CHANNEL_NAME, "changed")

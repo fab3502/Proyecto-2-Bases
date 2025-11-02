@@ -3,7 +3,6 @@ import pymongo
 import time
 from typing import Tuple, Iterator
 from storage import (
-    redis_db,REDIS_CHANNEL_NAME,
     votes_user_set, votes_insert, votes_delete,
     concursante_category, cache_warm_user_voted, cache_incr_vote_counters, 
     cache_decr_vote_counters, create_pubsub, subscribe_pubsub, publish_vote_event

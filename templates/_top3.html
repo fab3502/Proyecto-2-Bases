@@ -1,0 +1,24 @@
+{% if top3 and top3|length %}
+<div class="row">
+  {% for c in top3 %}
+  <div class="col-md-4 mb-3">
+    <div class="card text-center h-100 shadow-sm">
+      <img src="{{ url_for('static', filename='fotos/' ~ c.foto) }}"
+           class="card-img-top"
+           style="height:200px; object-fit:cover;"
+           alt="{{ c.nombre }}">
+      <div class="card-body">
+        <h5 class="card-title mb-1">{{ c.nombre }}</h5>
+        <p class="text-muted mb-2">{{ c.categoria }}</p>
+        <p class="h4 mb-2">{{ c.votos }} votos</p>
+        <span class="badge bg-warning text-dark">#{{ loop.index }}</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-4">
+  No hay votos registrados aún.
+</div>
+{% endif %}

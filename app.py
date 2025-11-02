@@ -7,8 +7,11 @@ from storage import (redis_db, ensure_indexes, reset_all,
     user_find_by_username, user_insert,
     concursantes_all, concursantes_insert,
     concursantes_insert_many_sanitized,
-    votes_count)
-from services import warm_user_voted, add_vote, remove_vote, make_vote_event_stream
+    votes_count, concursantes_get_top_3,
+    votes_by_categoria, concursantes_no_votes)
+
+from services import (warm_user_voted, add_vote, remove_vote, 
+    make_vote_event_stream)
 
 # --- Flask setup ----------------------------------------------------------------
 app = Flask(__name__)
@@ -136,6 +139,7 @@ def admin_events():
             "X-Accel-Buffering": "no",  
         },
     )
+
 @app.route('/admin/realtime')
 def display_realtime():
     concursantes_docs = concursantes_all()
@@ -155,15 +159,18 @@ def display_realtime():
 
 @app.route('/admin/top3')
 def display_top3():
-    return render_template('_vote_button.html', cid=1, has_voted=True)
+    top3 = concursantes_get_top_3()
+    return render_template('_top3.html', top3=top3)
 
 @app.route('/admin/bycat')
 def display_bycat():
-    return render_template('_vote_button.html', cid=1, has_voted=True)
+    categorias = votes_by_categoria()
+    return render_template('_bycat.html', categorias=categorias)
 
 @app.route('/admin/novotes')
 def display_novotes():
-    return render_template('_vote_button.html', cid=1, has_voted=True)
+    sin_votos = concursantes_no_votes()
+    return render_template('_novotes.html', sin_votos=sin_votos)
 
 @app.route('/user')
 def user():

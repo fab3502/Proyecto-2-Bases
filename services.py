@@ -52,28 +52,21 @@ def make_vote_event_stream() -> Iterator[str]:
     last_keepalive = time.time() 
     try: 
         yield "event: message\ndata: init\n\n" 
-        print(f"{time.strftime('%H:%M:%S')} DEBUG Started vote event stream") 
         while True: 
             msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0) 
-            
             if msg and msg.get("type") == "message": 
                 data = msg.get("data") 
                 if isinstance(data, bytes): 
                     data = data.decode("utf-8", errors="ignore") 
                 yield f"event: message\ndata: {data}\n\n" 
-                print(f"{time.strftime('%H:%M:%S')} DEBUG Published vote event:", data) 
             now = time.time() 
             if now - last_keepalive >= KEEPALIVE_EVERY: 
                 yield ": keepalive\n\n" 
                 last_keepalive = now 
-                print(f"{time.strftime('%H:%M:%S')} DEBUG Sent keepalive") 
     except GeneratorExit: 
-        print(f"{time.strftime('%H:%M:%S')} DEBUG GeneratorExit") 
         pass 
     finally: 
         try: 
             pubsub.close() 
-            print(f"{time.strftime('%H:%M:%S')} DEBUG Closing PubSub")
         except Exception: 
-            print(f"{time.strftime('%H:%M:%S')} DEBUG Error closing PubSub") 
             pass

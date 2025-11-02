@@ -121,37 +121,21 @@ def add_concursante():
     concursantes_insert(nombre, categoria, filename)
     flash('Concursante agregado exitosamente', 'success')
     return redirect(url_for('admin'))
-"""
+
 @app.route('/admin/events')
 def admin_events():
+    
     event_stream = make_vote_event_stream()
+
     return Response(
         stream_with_context(event_stream),
         mimetype="text/event-stream",
         headers={
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no",
-        },
-    )
-"""
-@app.route('/admin/events')
-def admin_events():
-    def make_vote_event_stream1():
-        while True:
-            yield 'event: message\ndata: {"ping": "ok"}\n\n'
-            time.sleep(3)
-
-    return Response(
-        stream_with_context(make_vote_event_stream1()),
-        mimetype="text/event-stream",
-        headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  
         },
     )
-
 @app.route('/admin/realtime')
 def display_realtime():
     concursantes_docs = concursantes_all()
@@ -168,7 +152,6 @@ def display_realtime():
             'votos': counts_by_id.get(cid, 0),
         })
     return render_template('_realtime_table.html', rows=rows)
-
 
 @app.route('/admin/top3')
 def display_top3():

@@ -151,6 +151,15 @@ def votes_count(concursantes):
         counts_by_id = {int(cid): 0 for cid in concursantes_ids}
     return counts_by_id
 
+def create_pubsub():
+    return redis_db.pubsub()
+
+def subscribe_pubsub(pubsub):
+    pubsub.subscribe(REDIS_CHANNEL_NAME)
+
+def publish_vote_event():
+    redis_db.publish(REDIS_CHANNEL_NAME, "changed")
+
 # --- Redis cache helpers --------------------------------
 def cache_warm_user_voted(user_id: str, cids: Iterable[int]) -> None:
     key = f"voted:{user_id}"
@@ -181,17 +190,6 @@ def cache_decr_vote_counters(cid: int, category: str, user_id: str) -> None:
         p.hincrby("votes:bycat", category or "Desconocida", -1)
         p.srem(f"voted:{user_id}", s)
         p.execute()
-
-"""def create_subscribe_pubsub():
-    pubsub = redis_db.pubsub()
-    return pubsub
-
-def subscribe_pubsub(pubsub):
-    pubsub.subscribe(REDIS_CHANNEL_NAME)
-    return pubsub"""
-
-def publish_vote_event():
-    redis_db.publish(REDIS_CHANNEL_NAME, "changed")
 
 # --- Reset helpers -----------------------------------------------
 def reset_all(seed_users: list[dict]) -> None:

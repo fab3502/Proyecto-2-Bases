@@ -136,15 +136,13 @@ def concursantes_get_top_3() -> list[dict]:
 def concursantes_no_votes() -> list[dict]:
     try:
         todos = list(concursantes_all())
-        con_votos = {
-            int(key.split(":")[1])
-            for key in redis_db.keys("votes:[0-9]*") # type: ignore
-            if key != "votes:total"
-        }
-        return [
-            concursante for concursante in todos
-            if concursante["id"] not in con_votos
-        ]
+        sin_votos = []
+        for concursante in todos:
+            key = f"votes:{concursante['id']}"
+            votes = redis_db.get(key)
+            if votes is None or int(votes) == 0: # type: ignore
+                sin_votos.append(concursante)
+        return sin_votos
     except Exception:
         return []
 

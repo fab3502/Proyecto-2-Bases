@@ -1,4 +1,3 @@
-# services.py
 import pymongo
 import time
 from typing import Tuple, Iterator

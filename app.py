@@ -1,4 +1,12 @@
-# app.py
+#########################################
+# Proyecto 2 - Bases de Datos Avanzadas #
+# Integrantes:                          #
+# Mirka Araya Quirós                    #
+# Sharon Sanchez Céspedes               #
+# Fabián Granados Rivera                #
+#########################################
+
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session, Response, stream_with_context
 from werkzeug.utils import secure_filename
 import os, json,time
@@ -8,7 +16,8 @@ from storage import (redis_db, ensure_indexes, reset_all,
     concursantes_all, concursantes_insert,
     concursantes_insert_many_sanitized,
     votes_count, concursantes_get_top_3,
-    votes_by_categoria, concursantes_no_votes)
+    votes_by_categoria, concursantes_no_votes,
+    votes_get_total)
 
 from services import (warm_user_voted, add_vote, remove_vote, 
     make_vote_event_stream)
@@ -143,6 +152,7 @@ def admin_events():
 @app.route('/admin/realtime')
 def display_realtime():
     concursantes_docs = concursantes_all()
+    total = votes_get_total()
     counts_by_id = votes_count(concursantes_docs)
     rows = []
     for d in concursantes_docs:
@@ -155,7 +165,7 @@ def display_realtime():
             'foto': d.get('foto', ''),
             'votos': counts_by_id.get(cid, 0),
         })
-    return render_template('_realtime_table.html', rows=rows)
+    return render_template('_realtime_table.html', rows=rows, total_votes=total)
 
 @app.route('/admin/top3')
 def display_top3():

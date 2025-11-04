@@ -1,4 +1,3 @@
-# storage.py
 import pymongo, redis
 from datetime import datetime, timezone
 from typing import Iterable
@@ -188,6 +187,12 @@ def votes_by_categoria() -> dict[str, int]:
     except Exception:
         return {}
     
+def votes_get_total() -> int:
+    try:
+        total = redis_db.get("votes:total")
+        return int(total) if total is not None else 0 # type: ignore
+    except Exception:
+        return 0
 
 # --- Redis cache helpers --------------------------------
 def cache_warm_user_voted(user_id: str, cids: Iterable[int]) -> None:

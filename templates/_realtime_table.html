@@ -26,6 +26,12 @@
         <td class="text-end fw-semibold">{{ r.votos }}</td>
       </tr>
       {% endfor %}
+      <tfoot>
+        <tr class="table-dark"></tr>
+          <td colspan="3" class="fw-bold">Total</td>
+          <td class="text-end fw-bold">{{ total_votes }}</td>
+        </tr>
+      </tfoot>
     </tbody>
   </table>
   {% else %}
